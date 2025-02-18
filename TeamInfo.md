@@ -14,7 +14,7 @@
 | Member2     |     Ashit Anandkumar   |
 | Member2     |  aa97@illinois.edu     |
 | Member3     |        Tony Chan       |
-| Member3     |         tchan34        |
+| Member3     |  tchan34@illinois.edu  |
 
 ## Project Information
 
@@ -26,4 +26,4 @@
 
 ## Project Summary
 
-A watch collector app that holds a database of watches/straps/parts that allows collectors to save their collection, browse combinations/designs, track prices in the market, as well as share designs with other users for inspiration.
+A watch collector app that holds a database of watches/straps/parts that allows collectors to save their collection, browse combinations/designs, track prices and popularity in the market, as well as share designs with other users for inspiration. This app aims to develop a watch collector community and connect experienced collectors with newer collectors.
