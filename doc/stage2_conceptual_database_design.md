@@ -1,9 +1,5 @@
 # Assumptions for Database Design
 
-Below are the key assumptions and reasoning behind each entity and relationship in our schema.
-
----
-
 ## 1. Brand Market Data
 - **Purpose:** This table stores historical transactions or pricing data related to each watch brand.
 - **Why an Entity (vs. Attribute?):**  
@@ -15,8 +11,6 @@ Below are the key assumptions and reasoning behind each entity and relationship 
 
 **Assumption:**  
 - Each row in `Brand_Market_Data` corresponds to a single recorded transaction or summarized price record for a specific brand at a point in time.
-
----
 
 ## 2. Watch Brands
 - **Purpose:** Holds core information about each watch brand (e.g., brand name, country, founding year).
@@ -30,8 +24,6 @@ Below are the key assumptions and reasoning behind each entity and relationship 
 **Assumption:**  
 - A brand is a standalone entity because it can exist before any watch is created or any transaction is recorded.
 
----
-
 ## 3. Watches
 - **Purpose:** Stores detailed information about individual watch models (e.g., reference number, model name, movement type).
 - **Why an Entity?:**  
@@ -43,8 +35,6 @@ Below are the key assumptions and reasoning behind each entity and relationship 
 
 **Assumption:**  
 - Each row in `Watches` represents a distinct model or reference number, not necessarily an individual physical watch.
-
----
 
 ## 4. Customers
 - **Purpose:** Represents users in our platform (the watch owners and/or reviewers).
@@ -59,8 +49,6 @@ Below are the key assumptions and reasoning behind each entity and relationship 
 - Each user is uniquely identified (e.g., `customer_id`) and can exist even if they currently own no watches or have not yet posted a review.
 - **Deletion Constraint:** On deletion of a user (i.e., `Customers` record), all associated reviews and watch ownership instances are also deleted (cascading delete).
 
----
-
 ## 5. Watch Ownership (Collections)
 - **Purpose:** Captures which user owns which watch(es).
 - **Why an Entity?:**  
@@ -74,8 +62,6 @@ Below are the key assumptions and reasoning behind each entity and relationship 
 **Assumption:**  
 - A single watch entry in `Watches` can appear multiple times in `Watch_Ownership` for different users if the business rules allow.
 
----
-
 ## 6. Reviews
 - **Purpose:** Users can post reviews reflecting their overall ownership experience for all watches they own (a “collection” review).
 - **Why an Entity?:**  
@@ -87,8 +73,6 @@ Below are the key assumptions and reasoning behind each entity and relationship 
 **Assumption:**  
 - A single review is a user’s reflection on their entire watch collection at that moment, rather than on a specific watch.
 - If we ever decide to have watch-specific reviews, we could add a foreign key to `Watch_Ownership` or `Watches`.
-
----
 
 ## Additional Assumptions & Constraints
 
@@ -102,10 +86,3 @@ Below are the key assumptions and reasoning behind each entity and relationship 
 2. **Data Integrity:**  
    - Deletions: If a brand is deleted, its watch entries and brand market data should also be removed (or restricted, depending on business logic).  
    - Updates: A brand name can be updated, and references in `Watches` and `Brand_Market_Data` remain consistent.
-
-3. **Size & Growth:**  
-   - Each table can scale independently (especially `Brand_Market_Data`, which may accumulate thousands of rows over time).  
-   - `Watch_Ownership` can handle repeated references to the same watch from different users if the business rules allow.
-
-4. **Review Scope:**  
-   - We store one review per user for their entire collection. (This is an application design choice that could change if we want watch-specific reviews in the future.)
