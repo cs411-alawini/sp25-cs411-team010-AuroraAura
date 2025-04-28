@@ -1,0 +1,210 @@
+1. Transactions:
+
+AVG Price of Watches Per Country
+@app.route('/analytics/avg-price-country', methods=['GET'])
+def avg_price_per_country():
+    try:
+        conn = get_db_connection()
+        cur  = conn.cursor(dictionary=True)
+
+        query = '''
+        SELECT wb.hq_country,
+               ROUND(AVG(w.retail_price), 2) AS avg_price
+        FROM Watches w
+        JOIN Watch_Brands wb ON w.brand_name = wb.brand_name
+        GROUP BY wb.hq_country
+        ORDER BY avg_price DESC;
+        '''
+        cur.execute(query)
+        rows = cur.fetchall()
+
+        data = [
+            {'hq_country': r['hq_country'], 'avg_price': float(r['avg_price'])}
+            for r in rows
+        ]
+
+        cur.close()
+        conn.close()
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+AVG Price of Watches per Brand
+@app.route('/analytics/avg-price-brand', methods=['GET'])
+def avg_price_per_brand():
+    try:
+        conn = get_db_connection()
+        cur  = conn.cursor(dictionary=True)
+
+        query = '''
+        SELECT wb.brand_name,
+               ROUND(AVG(w.retail_price), 2) AS avg_price
+        FROM Watches w
+        JOIN Watch_Brands wb ON w.brand_name = wb.brand_name
+        GROUP BY wb.brand_name
+        ORDER BY avg_price DESC;
+        '''
+        cur.execute(query)
+        rows = cur.fetchall()
+
+        data = [
+            {'brand_name': r['brand_name'], 'avg_price': float(r['avg_price'])}
+            for r in rows
+        ]
+
+        cur.close()
+        conn.close()
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+Brands with Watches in More Than 3 Different Case Materials
+@app.route('/analytics/multiple-case-materials', methods=['GET'])
+def brands_with_multiple_case_materials():
+    try:
+        conn = get_db_connection()
+        cur  = conn.cursor(dictionary=True)
+
+        query = '''
+        SELECT w.brand_name,
+               COUNT(DISTINCT w.case_material) AS case_material_variants
+        FROM Watches w
+        JOIN Brand_Market_Data bmd ON w.brand_name = bmd.brand_name
+        GROUP BY w.brand_name
+        HAVING COUNT(DISTINCT w.case_material) > 3;
+        '''
+        cur.execute(query)
+        rows = cur.fetchall()
+
+        # case_material_variants will be an int, so no Decimal conversion needed
+        data = [
+            {'brand_name': r['brand_name'], 'case_material_variants': r['case_material_variants']}
+            for r in rows
+        ]
+
+        cur.close()
+        conn.close()
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+
+
+2. Stored Procedures:
+
+-- 1. Most valuable watch
+
+CREATE PROCEDURE GetMostValuableWatch(IN input_customer_id INT)
+BEGIN
+    SELECT w.*
+    FROM Watch_Ownership wo
+    JOIN Watches w ON wo.reference = w.reference
+    WHERE wo.customer_id = input_customer_id
+    ORDER BY w.retail_price DESC
+    LIMIT 1;
+END;
+
+-- 2. Total collection value
+CREATE PROCEDURE GetTotalCollectionValue(IN input_customer_id INT)
+BEGIN
+    SELECT 0 + SUM(w.retail_price) AS total_collection_value
+    FROM Watch_Ownership wo
+    JOIN Watches w ON wo.reference = w.reference
+    WHERE wo.customer_id = input_customer_id;
+END;
+
+-- 3. Unique watch count
+CREATE PROCEDURE GetUniqueWatchCount(IN input_customer_id INT)
+BEGIN
+    SELECT COUNT(DISTINCT wo.reference) AS unique_watch_count
+    FROM Watch_Ownership wo
+    WHERE wo.customer_id = input_customer_id;
+END;
+
+-- 4. Favorite brand
+CREATE PROCEDURE GetFavoriteBrand(IN input_customer_id INT)
+BEGIN
+    SELECT wo.brand_name, COUNT(*) AS brand_count
+    FROM Watch_Ownership wo
+    WHERE wo.customer_id = input_customer_id
+    GROUP BY wo.brand_name
+    ORDER BY brand_count DESC
+    LIMIT 1;
+END;
+
+
+
+
+
+
+3. Triggers and constraints:
+
+CREATE TABLE Watch_Brands (
+brand_name VARCHAR(50) NOT NULL,
+hq_city VARCHAR(50),
+hq_country VARCHAR(50),
+year_founded YEAR,
+founder VARCHAR(200),
+PRIMARY KEY (brand_name)
+);
+CREATE TABLE Watches (
+reference VARCHAR(30) NOT NULL,
+brand_name VARCHAR(50) NOT NULL,
+model_name VARCHAR(100),
+complication VARCHAR(100),
+case_material VARCHAR(100),
+bracelet_material VARCHAR(100),
+dial_color VARCHAR(100),
+hour_markings BOOL,
+lunette_material VARCHAR(100),
+retail_price FLOAT(30,2),
+PRIMARY KEY (reference),
+FOREIGN KEY (brand_name) REFERENCES Watch_Brands(brand_name) ON DELETE
+CASCADE
+);
+CREATE TABLE Customers (
+customer_id INT AUTO_INCREMENT,
+first_name VARCHAR(50),
+last_name VARCHAR(50),
+email VARCHAR(60) UNIQUE,
+user_id VARCHAR(50) UNIQUE,
+year_joined YEAR,
+age INT,
+PRIMARY KEY (customer_id)
+);
+CREATE TABLE Reviews (
+review_id INT AUTO_INCREMENT,
+customer_id INT NOT NULL,
+review_text VARCHAR(500),
+stars FLOAT(2,1),
+author_id INT NOT NULL,
+PRIMARY KEY (review_id),
+FOREIGN KEY (customer_id) REFERENCES Customers(customer_id) ON DELETE
+CASCADE,
+FOREIGN KEY (author_id) REFERENCES Customers(customer_id) ON DELETE CASCADE
+);
+CREATE TABLE Watch_Ownership (
+ownership_id INT AUTO_INCREMENT,
+customer_id INT NOT NULL,
+brand_name VARCHAR(50) NOT NULL,
+model_name VARCHAR(100),
+watch_collection_type VARCHAR(50),
+reference VARCHAR(30) NOT NULL,
+PRIMARY KEY (ownership_id),
+FOREIGN KEY (customer_id) REFERENCES Customers(customer_id) ON DELETE
+CASCADE,
+FOREIGN KEY (brand_name) REFERENCES Watch_Brands(brand_name) ON DELETE
+CASCADE,
+FOREIGN KEY (reference) REFERENCES Watches(reference) ON DELETE CASCADE
+);
+CREATE TABLE Brand_Market_Data (
+transaction_id INT AUTO_INCREMENT,
+brand_name VARCHAR(50) NOT NULL,
+price FLOAT(30,2),
+production_year YEAR,
+PRIMARY KEY (transaction_id),
+FOREIGN KEY (brand_name) REFERENCES Watch_Brands(brand_name) ON DELETE
+CASCADE
+);
